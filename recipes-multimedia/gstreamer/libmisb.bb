@@ -14,21 +14,18 @@ inherit meson pkgconfig python3native
 
 DEPENDS = " \
     jansson \
-    cpputest \
-    python3 \
-    python3-pybind11-native \
-    cmake-native \
-    doxygen-native \
 "
 
-EXTRA_OEMESON += " \
-    -Dexamples=enabled \
-    -Dtests=disabled \
-    -Ddocs=disabled \
-    -Deval=disabled \
-    -Dpython=enabled \
-    -Ddeveloper-mode=false \
-"
+PACKAGECONFIG ??= "examples python"
+
+PACKAGECONFIG[examples] = "-Dexamples=enabled,-Dexamples=disabled,cmake-native"
+PACKAGECONFIG[tests] = "-Dtests=enabled,-Dtests=disabled,cpputest"
+PACKAGECONFIG[docs] = "-Ddocs=enabled,-Ddocs=disabled,doxygen-native"
+PACKAGECONFIG[eval] = "-Deval=enabled,-Deval=disabled"
+PACKAGECONFIG[python] = \
+    "-Dpython=enabled,-Dpython=disabled,python3-pybind11-native python3"
+
+EXTRA_OEMESON += "-Ddeveloper-mode=false"
 
 RDEPENDS:${PN} += " \
     jansson \
@@ -37,29 +34,27 @@ RDEPENDS:${PN} += " \
 
 # If upstream installs into Debian multiarch libdir, normalize it to Yocto's ${libdir}.
 do_install:append() {
-    if [ -d ${D}${prefix}/lib/aarch64-linux-gnu ]; then
-        install -d ${D}${libdir}
-        cp -a ${D}${prefix}/lib/aarch64-linux-gnu/* ${D}${libdir}/
-        rm -rf ${D}${prefix}/lib/aarch64-linux-gnu
-    fi
+    for multiarch_dir in ${D}${prefix}/lib/*-linux-gnu*; do
+        if [ -d "$multiarch_dir" ] && [ "$multiarch_dir" != "${D}${libdir}" ]; then
+            install -d ${D}${libdir}
+            cp -a "$multiarch_dir"/. ${D}${libdir}/
+            rm -rf "$multiarch_dir"
+        fi
+    done
 
-    # Install example source/content onto the target.
-    # Adjust "examples" to the exact directory name if different.
     if [ -d ${S}/examples ]; then
         install -d ${D}${datadir}/${BPN}/examples
-        cp -r ${S}/examples/* ${D}${datadir}/${BPN}/examples/
+        cp -r ${S}/examples/. ${D}${datadir}/${BPN}/examples/
     fi
 }
 
 FILES:${PN} += " \
     ${bindir}/misb-converter \
     ${bindir}/misb_ST0601_sample.json \
-    ${libdir}/libformatter.so.0 \
-    ${libdir}/libformatter.so.0.1.0 \
-    ${libdir}/libmisb-0.0.so.0 \
-    ${libdir}/libmisb-0.0.so.0.1.0 \
+    ${libdir}/libformatter.so.* \
+    ${libdir}/libmisb-0.0.so.* \
     ${datadir}/${BPN}/examples \
-     ${PYTHON_SITEPACKAGES_DIR}/libmisb*.so \
+    ${PYTHON_SITEPACKAGES_DIR}/libmisb*.so \
 "
 
 FILES:${PN}-dev += " \
