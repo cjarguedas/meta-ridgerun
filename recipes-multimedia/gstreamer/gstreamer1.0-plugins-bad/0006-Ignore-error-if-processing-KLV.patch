@@ -1,0 +1,34 @@
+From 42fbf16a6ae496286b9f66680ade65af1166c7c1 Mon Sep 17 00:00:00 2001
+From: "@carguedas" <@carguedas>
+Date: Fri, 28 Nov 2025 11:02:34 -0600
+Subject: [PATCH 6/6] Ignore error if processing KLV
+
+---
+ .../gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c      | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+index 56b84f0bcc..bdedf2a860 100644
+--- a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
++++ b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+@@ -791,10 +791,13 @@ gst_base_ts_mux_create_or_update_stream (GstBaseTsMux * mux,
+   }
+ 
+   if (ts_pad->stream && st != ts_pad->stream->stream_type) {
+-    GST_ELEMENT_ERROR (mux, STREAM, MUX,
+-        ("Stream type change from %02x to %02x not supported",
+-            ts_pad->stream->stream_type, st), NULL);
+-    goto error;
++    /* Ignore error if we are processing KLV */
++    if (st != TSMUX_ST_PS_KLV) {
++      GST_ELEMENT_ERROR (mux, STREAM, MUX,
++          ("Stream type change from %02x to %02x not supported",
++              ts_pad->stream->stream_type, st), NULL);
++      goto error;
++    }
+   }
+ 
+   if (ts_pad->stream == NULL) {
+-- 
+2.34.1
+

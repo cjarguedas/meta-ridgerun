@@ -1,0 +1,35 @@
+From dfa2ee29038d2b1dae58a5db0e8ff880f358c3a9 Mon Sep 17 00:00:00 2001
+From: "@carguedas" <@carguedas>
+Date: Fri, 28 Nov 2025 11:01:06 -0600
+Subject: [PATCH 1/6] Avoid selecting PCR on metadata stream
+
+---
+ subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+index 7e0b981cee..308bd030f2 100644
+--- a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
++++ b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+@@ -977,7 +977,7 @@ gst_base_ts_mux_create_pad_stream (GstBaseTsMux * mux, GstPad * pad,
+   }
+   ts_pad->stream->program = ts_pad->prog;
+ 
+-  if (ts_pad->prog->pcr_stream == NULL) {
++  if (ts_pad->prog->pcr_stream == NULL && ts_pad->stream->is_meta != TRUE) {
+     /* Take the first stream of the program for the PCR */
+     GST_DEBUG_OBJECT (ts_pad,
+         "Use stream (pid=%d) from pad as PCR for program (prog_id = %d)",
+@@ -1450,7 +1450,8 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
+     }
+   }
+ 
+-  if (!prog->pcr_pid && G_UNLIKELY (prog->pcr_stream == NULL)) {
++  if (!prog->pcr_pid && G_UNLIKELY (prog->pcr_stream == NULL
++          && best->stream->is_meta != TRUE)) {
+     /* Take the first data stream for the PCR */
+     GST_DEBUG_OBJECT (best,
+         "Use stream (pid=%d) from pad as PCR for program (prog_id = %d)",
+-- 
+2.34.1
+

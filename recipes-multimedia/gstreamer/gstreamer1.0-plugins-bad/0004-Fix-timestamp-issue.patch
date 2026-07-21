@@ -1,0 +1,32 @@
+From 9f063e3750a2b73e122c7ae465fd6d8c7853cceb Mon Sep 17 00:00:00 2001
+From: Allan Navarro <allan.navarro@ridgerun.com>
+Date: Thu, 20 Oct 2022 18:07:56 -0600
+Subject: [PATCH 4/6] Fix timestamp issue
+
+---
+ subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+index c5821aa225..56b84f0bcc 100644
+--- a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
++++ b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+@@ -2535,6 +2535,15 @@ gst_base_ts_mux_find_best_pad (GstAggregator * aggregator)
+     buffer = gst_aggregator_pad_peek_buffer (apad);
+     if (!buffer)
+       continue;
++
++    if (tpad->stream && tpad->stream->is_meta
++        && !GST_BUFFER_PTS_IS_VALID (buffer)
++        && !GST_BUFFER_DTS_IS_VALID (buffer)) {
++      best = tpad;
++      gst_buffer_unref (buffer);
++      break;
++    }
++
+     if (best_ts == GST_CLOCK_TIME_NONE) {
+       best = tpad;
+       best_ts = GST_BUFFER_DTS_OR_PTS (buffer);
+-- 
+2.34.1
+

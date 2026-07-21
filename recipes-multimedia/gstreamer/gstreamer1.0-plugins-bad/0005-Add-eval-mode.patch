@@ -1,0 +1,77 @@
+From ba9661d4c1ab88a384922a03dc0694f6ddf0856d Mon Sep 17 00:00:00 2001
+From: "@carguedas" <@carguedas>
+Date: Fri, 28 Nov 2025 11:02:23 -0600
+Subject: [PATCH 5/6] Add eval mode
+
+---
+ .../gst/mpegtsmux/gstmpegtsmux.c              | 27 +++++++++++++++++++
+ .../gst/mpegtsmux/gstmpegtsmux.h              |  3 +++
+ 2 files changed, 30 insertions(+)
+
+diff --git a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.c b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.c
+index 9d17088866..459e7b5cf2 100644
+--- a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.c
++++ b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.c
+@@ -143,6 +143,8 @@ G_DEFINE_TYPE (GstMpegTsMux, gst_mpeg_ts_mux, GST_TYPE_BASE_TS_MUX);
+ GST_ELEMENT_REGISTER_DEFINE (mpegtsmux, "mpegtsmux", GST_RANK_PRIMARY,
+     gst_mpeg_ts_mux_get_type ());
+ 
++#define LIMITEVAL 200000
++
+ /* Internals */
+ 
+ static gboolean
+@@ -277,6 +279,29 @@ gst_mpeg_ts_mux_output_packet (GstBaseTsMux * base_tsmux, GstBuffer * buffer,
+   GstMpegTsMux *mux = GST_MPEG_TS_MUX (base_tsmux);
+   GstMapInfo map;
+ 
++  mux->num_buffers++;
++
++  if (mux->num_buffers > LIMITEVAL) {
++    g_printerr ("                                     \n"
++        "  *****************************************  \n"
++        "  ***** THIS IS AN EVALUATION VERSION *****  \n"
++        "  *****************************************  \n"
++        "                                             \n"
++        "   Thanks for evaluating GstInBandMetadata!  \n"
++        "                                             \n"
++        "   This evaluation will transform up to      \n"
++        "   %i buffers and will stop the stream.    \n"
++        "   Please contact <support@ridgerun.com> to  \n"
++        "   purchase the professional version of the  \n"
++        "   plug-in.                                  \n"
++        "                                             \n"
++        "  *****************************************  \n"
++        "  ***** THIS IS AN EVALUATION VERSION *****  \n"
++        "  *****************************************  \n"
++        "                                             \n", LIMITEVAL);
++    return FALSE;
++  }
++
+   if (!mux->m2ts_mode)
+     return ((GstBaseTsMuxClass *) parent_class)->output_packet (base_tsmux,
+         buffer, new_pcr);
+@@ -411,4 +436,6 @@ gst_mpeg_ts_mux_init (GstMpegTsMux * mux)
+ {
+   mux->m2ts_mode = MPEGTSMUX_DEFAULT_M2TS;
+   mux->adapter = gst_adapter_new ();
++
++  mux->num_buffers = 0;
+ }
+diff --git a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.h b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.h
+index 3cf96ddde7..208445ca2a 100644
+--- a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.h
++++ b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.h
+@@ -95,6 +95,9 @@ struct GstMpegTsMux {
+   gint64 pcr_rate_num;
+   gint64 pcr_rate_den;
+   GstAdapter *adapter;
++
++  /* evaluation mode */
++  gint num_buffers;
+ };
+ 
+ struct GstMpegTsMuxClass {
+-- 
+2.34.1
+

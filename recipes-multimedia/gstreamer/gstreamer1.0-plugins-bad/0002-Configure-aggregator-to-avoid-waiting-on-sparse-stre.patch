@@ -1,0 +1,80 @@
+From f1f22a8e9c272cd06f23a2fb070009b40e3811f6 Mon Sep 17 00:00:00 2001
+From: "@carguedas" <christian.arguedas@ridgerun.com>
+Date: Wed, 27 May 2026 11:16:30 -0600
+Subject: [PATCH 2/6] Configure aggregator to avoid waiting on sparse streams
+
+---
+ .../gst/mpegtsmux/gstbasetsmux.c              | 36 ++++++++++++++++---
+ 1 file changed, 31 insertions(+), 5 deletions(-)
+
+diff --git a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+index 308bd030f2..9747908ede 100644
+--- a/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
++++ b/subprojects/gst-plugins-bad/gst/mpegtsmux/gstbasetsmux.c
+@@ -905,7 +905,11 @@ gst_base_ts_mux_create_pad_stream (GstBaseTsMux * mux, GstPad * pad,
+   gchar *name = NULL;
+   gchar *prop_name;
+   GstFlowReturn ret = GST_FLOW_OK;
+-  GstCaps *caps = gst_pad_get_current_caps (pad);
++  GstCaps *caps = NULL;
++
++  caps = gst_pad_get_current_caps (pad);
++  if (!caps)
++    caps = gst_pad_get_allowed_caps (pad);
+ 
+   if (caps == NULL) {
+     GST_DEBUG_OBJECT (ts_pad, "Sink pad caps were not set yet");
+@@ -1096,6 +1100,30 @@ new_packet_common_init (GstBaseTsMux * mux, GstBuffer * buf, guint8 * data,
+   }
+ }
+ 
++static GstFlowReturn
++gst_base_ts_mux_finish_buffer_list (GstBaseTsMux * mux,
++    GstBufferList * bufferlist)
++{
++  GstAggregator *agg = NULL;
++  GstAggregatorPad *pad = NULL;
++
++  g_return_val_if_fail (mux, GST_FLOW_ERROR);
++  g_return_val_if_fail (bufferlist, GST_FLOW_ERROR);
++
++  agg = GST_AGGREGATOR (mux);
++  pad = GST_AGGREGATOR_PAD (GST_AGGREGATOR_SRC_PAD (agg));
++
++  if (gst_buffer_list_length (bufferlist) >= 1) {
++    GstBuffer *buf = gst_buffer_list_get (bufferlist, 0);
++
++    if (GST_BUFFER_PTS_IS_VALID (buf)) {
++      pad->segment.position = GST_BUFFER_PTS (buf);
++    }
++  }
++
++  return gst_aggregator_finish_buffer_list (agg, bufferlist);
++}
++
+ static GstFlowReturn
+ gst_base_ts_mux_push_packets (GstBaseTsMux * mux, gboolean force)
+ {
+@@ -1121,8 +1149,7 @@ gst_base_ts_mux_push_packets (GstBaseTsMux * mux, gboolean force)
+   /* no alignment, just push all available data */
+   if (align == 0) {
+     buffer_list = gst_adapter_take_buffer_list (mux->out_adapter, av);
+-    flow_ret = gst_aggregator_finish_buffer_list (GST_AGGREGATOR (mux),
+-        buffer_list);
++    flow_ret = gst_base_ts_mux_finish_buffer_list (mux, buffer_list);
+ 
+     pts = gst_adapter_prev_pts (mux->out_adapter, NULL);
+     if (GST_CLOCK_TIME_IS_VALID (pts)
+@@ -1204,8 +1231,7 @@ gst_base_ts_mux_push_packets (GstBaseTsMux * mux, gboolean force)
+     gst_buffer_list_add (buffer_list, buf);
+   }
+ 
+-  flow_ret =
+-      gst_aggregator_finish_buffer_list (GST_AGGREGATOR (mux), buffer_list);
++  flow_ret = gst_base_ts_mux_finish_buffer_list (mux, buffer_list);
+ 
+   pts = gst_adapter_prev_pts (mux->out_adapter, NULL);
+   if (GST_CLOCK_TIME_IS_VALID (pts)
+-- 
+2.34.1
+
