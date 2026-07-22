@@ -1,5 +1,5 @@
-SUMMARY = "libmisb"
 DESCRIPTION = "MISB metadata library with converter tool and Python support"
+HOMEPAGE = "https://developer.ridgerun.com/wiki/index.php/LibMISB"
 SECTION = "multimedia"
 LICENSE = "CLOSED"
 COMPATIBLE_MACHINE = ".*"
@@ -10,7 +10,7 @@ SRC_URI = "git://git@gitlab.ridgerun.com/ridgerun/orders/${RR_CUSTOMER_GITLAB_OR
 
 S = "${WORKDIR}/git"
 
-inherit meson pkgconfig python3native
+inherit meson pkgconfig python3native rr_proprietary
 
 DEPENDS = " \
     jansson \
@@ -44,17 +44,15 @@ do_install:append() {
 
     if [ -d ${S}/examples ]; then
         install -d ${D}${datadir}/${BPN}/examples
-        cp -r ${S}/examples/. ${D}${datadir}/${BPN}/examples/
+        cp -ra ${S}/examples/. ${D}${datadir}/${BPN}/examples/
     fi
 }
 
 FILES:${PN} += " \
-    ${bindir}/misb-converter \
-    ${bindir}/misb_ST0601_sample.json \
-    ${libdir}/libformatter.so.* \
-    ${libdir}/libmisb-0.0.so.* \
+    ${bindir} \
+    ${libdir}/lib*.so* \
     ${datadir}/${BPN}/examples \
-    ${PYTHON_SITEPACKAGES_DIR}/libmisb*.so \
+    ${PYTHON_SITEPACKAGES_DIR}/lib*.so \
 "
 
 FILES:${PN}-dev += " \
