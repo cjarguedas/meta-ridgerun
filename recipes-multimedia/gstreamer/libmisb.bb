@@ -52,7 +52,7 @@ FILES:${PN} += " \
     ${bindir} \
     ${libdir}/lib*.so* \
     ${datadir}/${BPN}/examples \
-    ${PYTHON_SITEPACKAGES_DIR}/lib*.so \
+    ${PYTHON_SITEPACKAGES_DIR}/*.cpython*.so* \
 "
 
 FILES:${PN}-dev += " \
