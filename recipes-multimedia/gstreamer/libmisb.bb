@@ -57,7 +57,6 @@ FILES:${PN} += " \
 
 FILES:${PN}-dev += " \
     ${includedir}/libmisb-0.0 \
-    ${libdir}/libformatter.so \
-    ${libdir}/libmisb-0.0.so \
+    ${libdir}/lib*.so* \
     ${libdir}/pkgconfig/misb-0.0.pc \
 "
